@@ -130,6 +130,7 @@ dmypy.json
 
 # resources & data
 images/
+data/
 *.tar
 *.zip
 
