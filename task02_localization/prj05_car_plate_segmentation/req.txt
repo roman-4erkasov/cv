@@ -1,0 +1,9 @@
+numpy
+opencv-python
+torch
+torchvision
+segmentation_models_pytorch
+Albumentations
+jupyterlab
+matplotlib
+ipywidgets
