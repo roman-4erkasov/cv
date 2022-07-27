@@ -67,29 +67,29 @@ class DataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         if stage == "3" or stage is None:
-            print(self.images[:5])
-            print(tuple(int(n_img*x) for x in self.split_proportions))
             self.train, self.val, self.test = np.split(
                 self.images, 
-                tuple(int(n_img*x) for x in self.split_proportions)
+                tuple(int(self.n_img * x) for x in self.split_proportions)
             )
         elif stage == "2":
             self.train, self.val = np.split(
-                self.images, tuple(int(n_img*self.split_proportions[0]),)
+                self.images, tuple(int(self.n_img * self.split_proportions[0]),)
             )
         elif stage == "1":
-            self.train = images        
+            self.train = images  
+    
+    def prepare_data(self):
+        pass
     
     def train_dataloader(self):
-        # train_transforms = get_train_transforms(256)
         ds = DetectionDataset(data_path=self.data_dir, config=self.train, transforms=self.transforms)
         return DataLoader(ds, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        ds = DetectionDataset(data_path=self.data_dir, config=self.val)
+        ds = DetectionDataset(data_path=self.data_dir, config=self.val, transforms=self.transforms)
         return DataLoader(ds, batch_size=self.batch_size)
 
     def test_dataloader(self):
-        ds = DetectionDataset(data_path=self.data_dir, config=self.test)
+        ds = DetectionDataset(data_path=self.data_dir, config=self.test, transforms=self.transforms)
         return DataLoader(ds, batch_size=self.batch_size)
 

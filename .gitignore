@@ -133,6 +133,7 @@ images/
 data/
 out/
 in/
+lightning_logs/
 *.tar
 *.zip
 
