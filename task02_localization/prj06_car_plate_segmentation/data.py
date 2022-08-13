@@ -24,7 +24,10 @@ class DetectionDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image = cv2.imread(self.images[idx]).astype(np.float32) / 255.
+        try:
+            image = cv2.imread(self.images[idx]).astype(np.float32) / 255.
+        except AttributeError as exc:
+            raise AttributeError(f"Error while reading file {self.images[idx]}") from exc
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(self.masks[idx], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.
         item = dict(image=image, mask=mask)
