@@ -61,9 +61,11 @@ class DataModule(pl.LightningDataModule):
         self.transforms = self.get_transforms(image_size=self.image_size)
         
     @staticmethod
-    def get_transforms(image_size: int = 256):
+    def get_transforms(
+        image_size: int = 256, mean=(0.5, 0.5, 0.5), std=(0.25, 0.25, 0.25), max_pixel_value=1.
+    ):
         return Compose([
-            Normalize(mean=(0.5, 0.5, 0.5), std=(0.25, 0.25, 0.25), max_pixel_value=1.),
+            Normalize(mean=mean, std=std, max_pixel_value=max_pixel_value),
             Resize(height=image_size, width=image_size, ),
             ToTensorV2(),
         ])

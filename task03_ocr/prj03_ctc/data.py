@@ -68,7 +68,8 @@ class RecDataModule(pl.LightningDataModule):
         config: List,
         split_proportions = (0.6, 0.8),
         batch_size = 32,
-        image_size=256,
+        image_size=(320, 64),
+        num_workers: int = 1,
         seed = None,
     ):
         self.data_path = data_path
@@ -76,15 +77,16 @@ class RecDataModule(pl.LightningDataModule):
         self.config = config
         self.n_img = len(self.config)
         self.batch_size = batch_size
-        self.image_size = image_size
-        self.transforms = self.get_transforms(image_size=self.image_size)
+        self.image_width, self.image_heght = image_size
+        self.transforms = self.get_transforms(width=self.image_width, height=self.image_heght)
         self.abc = "0123456789ABCEHKMOPTXY"
+        self.num_workers = num_workers
         
     @staticmethod
-    def get_transforms(image_size: int = 256):
+    def get_transforms(width: int = 320, height: int = 256):
         return Compose([
             Normalize(mean=(0.5, 0.5, 0.5), std=(0.25, 0.25, 0.25), max_pixel_value=1.),
-            Resize(height=image_size, width=image_size, ),
+            Resize(height=height, width=width, ),
             # ToTensorV2(),
         ])
 
@@ -109,29 +111,29 @@ class RecDataModule(pl.LightningDataModule):
             data_path=self.data_path, config=self.train, transforms=self.transforms, abc=self.abc
         )
         return DataLoader(
-            ds, 
+            dataset=ds, 
             batch_size=self.batch_size, 
             shuffle=True, 
-            # num_workers=2,
+            num_workers=self.num_workers,
             collate_fn=ds.collate_fn
         )
 
     def val_dataloader(self):
         ds = RecDataset(data_path=self.data_path, config=self.val, abc=self.abc)
         return DataLoader(
-            ds, 
+            dataset=ds, 
             batch_size=self.batch_size,
             shuffle=True, 
-            # num_workers=2,
+            num_workers=self.num_workers,
             collate_fn=ds.collate_fn
         )
 
     def test_dataloader(self):
         ds = RecDataset(data_path=self.data_path, config=self.test, abc=self.abc)
         return DataLoader(
-            ds, 
+            dataset=ds, 
             batch_size=self.batch_size,
             shuffle=True, 
-            # num_workers=2,
+            num_workers=self.num_workers,
             collate_fn=ds.collate_fn
         )
