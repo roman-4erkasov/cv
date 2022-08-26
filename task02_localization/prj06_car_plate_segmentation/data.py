@@ -1,15 +1,16 @@
 import os
 import cv2
+import re
 import numpy as np
 import pytorch_lightning as pl
 from typing import Optional
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from albumentations.pytorch import ToTensorV2
 from albumentations import Compose, Resize, Normalize
 
 
 class DetectionDataset(Dataset):
-    def __init__(self, data_path, config, transforms=None,):
+    def __init__(self, data_path, config, transforms=None):
         super(DetectionDataset, self).__init__()
         self.data_path = data_path
         self.transforms = transforms
@@ -45,20 +46,22 @@ class DataModule(pl.LightningDataModule):
         split_proportions = (0.6, 0.8),
         batch_size = 32,
         image_size=256,
-        seed = None,
+        seed=None,
+        subset=None,
     ):
         self.data_dir = data_dir
         self.split_proportions = split_proportions
         self.images = list(
             {
-                tuple(x for x in fn.split(".") if x != "mask") 
-                for fn in os.listdir(data_dir)
+                tuple(x for x in fn.split(".")) for fn in os.listdir(data_dir)
+                if re.fullmatch(string=fn, pattern="\d+\.\w+")
             }
         )
         self.n_img = len(self.images)
         self.batch_size = batch_size
         self.image_size = image_size
         self.transforms = self.get_transforms(image_size=self.image_size)
+        self.subset = subset
         
     @staticmethod
     def get_transforms(
@@ -87,14 +90,26 @@ class DataModule(pl.LightningDataModule):
         pass
     
     def train_dataloader(self):
-        ds = DetectionDataset(data_path=self.data_dir, config=self.train, transforms=self.transforms)
+        ds = DetectionDataset(
+            data_path=self.data_dir, config=self.train, transforms=self.transforms
+        )
+        if self.subset:
+            ds = Subset(ds, self.subset)
         return DataLoader(ds, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        ds = DetectionDataset(data_path=self.data_dir, config=self.val, transforms=self.transforms)
+        ds = DetectionDataset(
+            data_path=self.data_dir, config=self.val, transforms=self.transforms
+        )
+        if self.subset:
+            ds = Subset(ds, self.subset)
         return DataLoader(ds, batch_size=self.batch_size)
 
     def test_dataloader(self):
-        ds = DetectionDataset(data_path=self.data_dir, config=self.test, transforms=self.transforms)
+        ds = DetectionDataset(
+            data_path=self.data_dir, config=self.test, transforms=self.transforms
+        )
+        if self.subset:
+            ds = Subset(ds, self.subset)
         return DataLoader(ds, batch_size=self.batch_size)
 

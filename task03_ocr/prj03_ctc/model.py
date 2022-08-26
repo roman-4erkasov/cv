@@ -1,6 +1,6 @@
 import os, json, re
 import torch
-from data import RecDataModule
+from data import DataModule
 import pytorch_lightning as pl
 import torchvision
 
@@ -8,6 +8,12 @@ import torchvision
 class FeatureExtractor(torch.nn.Module):
 
     def __init__(self, input_size=(64, 320), output_len=20):
+        """
+        Model for feature extraction.
+        Args:
+          - input_size: Input size
+          - output_len: Output length
+        """
         super(FeatureExtractor, self).__init__()
         h, w = input_size
         resnet = torchvision.models.resnet18(weights=True)
@@ -17,25 +23,22 @@ class FeatureExtractor(torch.nn.Module):
         self.num_output_features = self.cnn[-1][-1].bn2.num_features
 
     def apply_projection(self, x):
-        """Use convolution to increase width of a features.
-
+        """
+        Uses convolution to increase width of a features.
         Args:
             - x: Tensor of features (shaped B x C x H x W).
-
         Returns:
             New tensor of features (shaped B x C x H x W').
         """
         x = x.permute(0, 3, 2, 1).contiguous()
         x = self.proj(x)
         x = x.permute(0, 2, 3, 1).contiguous()
-
         return x
 
     def forward(self, x):
         features = self.cnn(x) # conv layers
         features = self.pool(features) # to make height == 1
         features = self.apply_projection(features) # to increase width
-
         return features
 
 
@@ -44,8 +47,17 @@ class SequencePredictor(torch.nn.Module):
     def __init__(
         self, input_size, hidden_size, num_layers, num_classes, dropout=0.3, bidirectional=False
     ):
+        """
+        Model which predict sequence of text on a car plate.
+        Args:
+          - input_size: Input size
+          - hidden_size: Hidden size
+          - num_layers: Number of layers
+          - num_classes: Number of classes
+          - dropout: Dropout
+          - bidirectional: If True model will be bidirectional, otherwise - unidirectional. 
+        """
         super(SequencePredictor, self).__init__()
-
         self.num_classes = num_classes
         self.rnn = torch.nn.GRU(
             input_size=input_size,
@@ -58,11 +70,10 @@ class SequencePredictor(torch.nn.Module):
         self.fc = torch.nn.Linear(in_features=fc_in, out_features=num_classes)
 
     def _init_hidden(self, batch_size):
-        """Initialize new tensor of zeroes for RNN hidden state.
-
+        """
+        Initialize new tensor of zeroes for RNN hidden state.
         Args:
             - batch_size: Int size of batch
-
         Returns:
             Tensor of zeros shaped (num_layers * num_directions, batch, hidden_size).
         """
@@ -71,11 +82,10 @@ class SequencePredictor(torch.nn.Module):
         return h
 
     def _reshape_features(self, x):
-        """Change dimensions of x to fit RNN expected input.
-
+        """
+        Change dimensions of x to fit RNN expected input.
         Args:
             - x: Tensor x shaped (B x (C=1) x H x W).
-
         Returns:
             New tensor shaped (W x B x H).
         """
@@ -141,8 +151,6 @@ class CRNN(pl.LightningModule):
         images = batch["images"].to(self.device)
         seqs = batch["seqs"]
         seq_lens = batch["seq_lens"]
-
-        # TODO TIP: What happens here is explained in seminar 06.
         seqs_pred = model(images).cpu()
         log_probs = torch.nn.functional.log_softmax(seqs_pred, dim=2)
         seq_lens_pred = torch.Tensor([seqs_pred.size(0)] * seqs_pred.size(1)).int()
